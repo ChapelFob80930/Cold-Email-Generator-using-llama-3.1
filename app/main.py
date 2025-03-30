@@ -1,33 +1,62 @@
 import streamlit as st
 from langchain_community.document_loaders import WebBaseLoader
-
 from chains import Chain
 from portfolio import Portfolio
 from utils import clean_text
 
+# Initialize Chain and Portfolio instances
+llm = Chain()
+portfolio = Portfolio()
+portfolio.load_portfolio()
 
-def create_streamlit_app(llm, portfolio, clean_text):
+
+def create_streamlit_app(llm, portfolio):
     st.title("📧 Cold Mail Generator")
-    url_input = st.text_input("Enter a URL:", value="https://www.google.com/about/careers/applications/jobs/results/137734004324344518-staff-software-engineer-core-machine-learning-google-cloud?tag=ai-spotlight")
-    submit_button = st.button("Submit")
+
+    # User input for job search
+    job_title = st.text_input("Enter job title (e.g., Software Engineer):")
+    location = st.text_input("Enter job location (e.g., Paris, France):")
+    submit_button = st.button("Search Jobs")
 
     if submit_button:
+        if not job_title or not location:
+            st.error("Please enter both job title and location.")
+            return
+
         try:
-            loader = WebBaseLoader([url_input])
-            data = clean_text(loader.load().pop().page_content)
-            portfolio.load_portfolio()
-            jobs = llm.extract_jobs(data)
-            for job in jobs:
-                skills = job.get('skills', [])
-                links = portfolio.query_links(skills)
-                email = llm.write_mail(job, links)
-                st.code(email, language='markdown')
+            # Search jobs based on user input
+            st.info(f"🔎 Searching for related jobs in {location}.... ")
+            jobs = llm.search_jobs(job_title, location)
+
+            if not jobs:
+                st.warning("⚠️ No jobs found. Try a different search.")
+                return
+
+            # Display the list of jobs for user to choose from
+            st.write("✅ Found the following jobs:")
+            job_choices = {}
+            for idx, job in enumerate(jobs):
+                job_title_display = f"{job['title']} at {job['company_name']} ({job['location']})"
+                job_choices[idx + 1] = job  # Storing job data with index as key
+                st.write(f"{idx + 1}. {job_title_display}")
+
+            job_selection = st.selectbox("🎯 Select a job to generate cold email", options=list(job_choices.keys()))
+            selected_job = job_choices[job_selection]
+
+            # Load portfolio and get relevant links based on job skills
+            skills = selected_job.get('skills')
+            links = portfolio.query_links(skills)
+            st.write(links)
+            # Generate cold email for selected job
+            st.info("✉️ Generating cold email...")
+            email = llm.write_mail(selected_job, links)
+            st.subheader("📄 Generated Cold Email:")
+            st.code(email, language='markdown')
+
         except Exception as e:
-            st.error(f"An Error Occurred: {e}")
+            st.error(f"❌ An error occurred: {e}")
 
 
+# Run the Streamlit app
 if __name__ == "__main__":
-    chain = Chain()
-    portfolio = Portfolio()
-    st.set_page_config(layout="wide", page_title="Cold Email Generator", page_icon="📧")
-    create_streamlit_app(chain, portfolio, clean_text)
+    create_streamlit_app(llm, portfolio)

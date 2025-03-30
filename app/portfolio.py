@@ -13,9 +13,15 @@ class Portfolio:
     def load_portfolio(self):
         if not self.collection.count():
             for _, row in self.data.iterrows():
-                self.collection.add(documents=row["Techstack"],
-                                    metadatas={"links": row["Links"]},
-                                    ids=[str(uuid.uuid4())])
+                self.collection.add(
+                    documents=row["Techstack"],
+                    metadatas={"links": row["Links"]},
+                    ids=[str(uuid.uuid4())]
+                )
 
     def query_links(self, skills):
-        return self.collection.query(query_texts=skills, n_results=2).get('metadatas', [])
+        if not skills:
+            return []
+        query_results = self.collection.query(query_texts=skills, n_results=2)
+        links = [item["links"] for item in query_results.get('metadatas', []) if "links" in item]
+        return links
