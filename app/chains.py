@@ -21,7 +21,7 @@ class Chain:
             The text provided is either from a career page or a job description.
             Your job is to extract a single job posting and return it in JSON format containing the 
             following keys: role, experience, skills, and description.
-            skills value is not a dictionary, rather just contains the skills. 
+            skills value is not a dictionary, rather just contains the skills and the skills should be single values eg."skills":"kubernetes","Docker","Python" and not one complete sentence like "skills":  "Proficient in running applications on Cloud (AWS, Azure, or equivalent) using Kubernetes and Docker".
             Only return a valid JSON object without wrapping it in a list and no examples required.
             ### VALID JSON (NO PREAMBLE):
             """

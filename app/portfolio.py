@@ -20,8 +20,9 @@ class Portfolio:
                 )
 
     def query_links(self, skills):
-        if not skills:
-            return []
-        query_results = self.collection.query(query_texts=skills, n_results=2)
-        links = [item["links"] for item in query_results.get('metadatas', []) if "links" in item]
-        return links
+        # if not skills:
+        #     return []
+        # query_results = self.collection.query(query_texts=skills, n_results=2)
+        # links = [item["links"] for item in query_results.get('metadatas', []) if "links" in item]
+        # return links
+        return self.collection.query(query_texts=skills, n_results=2).get('metadatas', [])
