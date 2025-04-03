@@ -9,6 +9,7 @@ llm = Chain()
 portfolio = Portfolio()
 portfolio.load_portfolio()
 
+
 def create_streamlit_app(llm, portfolio):
     st.title("📧 Cold Mail Generator")
 
@@ -17,50 +18,37 @@ def create_streamlit_app(llm, portfolio):
     location = st.text_input("Enter job location (e.g., Paris, France):")
     submit_button = st.button("Search Jobs")
 
-    # Job Search Logic (Only runs once, doesn't reset)
     if submit_button:
         if not job_title or not location:
             st.error("Please enter both job title and location.")
             return
 
         try:
+            # Search jobs based on user input
             st.info(f"🔎 Searching for related jobs in {location}.... ")
+            jobs = llm.search_jobs(job_title, location)
 
-            # Check if jobs are already in session state, if not, search and store them
-            if "jobs" not in st.session_state:
-                jobs = llm.search_jobs(job_title, location)
-                if not jobs:
-                    st.warning("⚠️ No jobs found. Try a different search.")
-                    return
-                st.session_state.jobs = jobs
-            else:
-                jobs = st.session_state.jobs  # Use the stored jobs
+            if not jobs:
+                st.warning("⚠️ No jobs found. Try a different search.")
+                return
 
             # Display the list of jobs for user to choose from
             st.write("✅ Found the following jobs:")
             job_choices = {}
             for idx, job in enumerate(jobs):
                 job_title_display = f"{job['title']} at {job['company_name']} ({job['location']})"
-                job_choices[idx + 1] = job  # Store job data with index as key
+                job_choices[idx + 1] = job  # Storing job data with index as key
                 st.write(f"{idx + 1}. {job_title_display}")
 
-            # Select job from dropdown
             job_selection = st.selectbox("🎯 Select a job to generate cold email", options=list(job_choices.keys()))
-
-            # If there's a new selection, update session state
             selected_job = job_choices[job_selection]
-            st.session_state.selected_job = selected_job
 
-            # Load portfolio and get relevant links based on job skills (only update on new selection)
+            # Load portfolio and get relevant links based on job skills
             skills = selected_job.get('skills')
-            
-            if "links" not in st.session_state or st.session_state.selected_job != selected_job:
-                links = portfolio.query_links(skills)
-                st.session_state.links = links
-
+            links = portfolio.query_links(skills)
             # Generate cold email for selected job
             st.info("✉️ Generating cold email...")
-            email = llm.write_mail(selected_job, st.session_state.links)
+            email = llm.write_mail(selected_job, links)
             st.subheader("📄 Generated Cold Email:")
             st.code(email, language='markdown')
 
